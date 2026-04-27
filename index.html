@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CircuitSprout - EE Interview Practice</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+  </head>
+  <body>
+    <main class="auth-shell" id="authShell">
+      <section class="auth-card" aria-label="Account access">
+        <div class="brand auth-brand">
+          <div class="logo" aria-hidden="true">
+            <span></span>
+            <i></i>
+          </div>
+          <div>
+            <p class="eyebrow">CircuitSprout</p>
+            <h1>Save your EE streak</h1>
+          </div>
+        </div>
+
+        <div class="auth-tabs" role="tablist" aria-label="Account mode">
+          <button class="auth-tab active" id="loginTab" type="button">Log in</button>
+          <button class="auth-tab" id="signupTab" type="button">Create account</button>
+        </div>
+
+        <div class="google-auth">
+          <div id="googleSignIn"></div>
+          <p id="googleStatus">Add a Google OAuth client ID below to enable Google sign-in.</p>
+        </div>
+
+        <details class="google-setup">
+          <summary>Google Workspace setup</summary>
+          <label>
+            OAuth web client ID
+            <input id="googleClientId" placeholder="CLIENT_ID.apps.googleusercontent.com" />
+          </label>
+          <label>
+            Workspace domain
+            <input id="googleHostedDomain" placeholder="example.edu" />
+          </label>
+          <button class="secondary-action compact-action" id="saveGoogleConfig" type="button">Save Google config</button>
+        </details>
+
+        <form class="auth-form" id="authForm">
+          <label>
+            Name
+            <input id="nameInput" name="name" autocomplete="name" placeholder="Ada Lovelace" minlength="2" />
+          </label>
+          <label>
+            Email
+            <input id="emailInput" name="email" type="email" autocomplete="email" placeholder="you@example.com" required />
+          </label>
+          <label>
+            Password
+            <input id="passwordInput" name="password" type="password" autocomplete="current-password" minlength="8" required />
+          </label>
+          <label id="confirmPasswordLabel">
+            Confirm password
+            <input id="confirmPasswordInput" name="confirmPassword" type="password" autocomplete="new-password" minlength="8" required />
+          </label>
+          <div class="password-rules" id="passwordRules" aria-live="polite">
+            <span data-rule="length">8+ characters</span>
+            <span data-rule="upper">uppercase</span>
+            <span data-rule="lower">lowercase</span>
+            <span data-rule="number">number</span>
+            <span data-rule="special">symbol</span>
+            <span data-rule="match">passwords match</span>
+          </div>
+          <button class="primary-action" id="authSubmit" type="submit">Log in</button>
+          <p class="auth-message" id="authMessage" role="status"></p>
+        </form>
+
+        <p class="auth-note">Demo accounts are saved only in this browser so progress can be separated by login.</p>
+      </section>
+    </main>
+
+    <div class="app-shell" id="appShell" hidden>
+      <aside class="rail" aria-label="Course navigation">
+        <div class="brand">
+          <div class="logo" aria-hidden="true">
+            <span></span>
+            <i></i>
+          </div>
+          <div>
+            <p class="eyebrow">EE majors</p>
+            <h1>CircuitSprout</h1>
+          </div>
+        </div>
+
+        <nav class="lesson-list" id="lessonList" aria-label="Lessons"></nav>
+
+        <section class="daily-card" aria-label="Daily goal">
+          <div class="daily-ring" id="dailyRing">0%</div>
+          <div>
+            <strong>Daily goal</strong>
+            <span id="dailyCopy">Finish 3 challenges to keep your streak warm.</span>
+          </div>
+        </section>
+      </aside>
+
+      <main class="practice-area">
+        <header class="topbar">
+          <div class="user-pill" title="Signed-in account">
+            <span id="userInitial">E</span>
+            <strong id="userName">Engineer</strong>
+          </div>
+          <div class="stat-pill" title="Learning streak">
+            <span>Streak</span>
+            <strong id="streakCount">0</strong>
+          </div>
+          <div class="stat-pill" title="Experience points">
+            <span>XP</span>
+            <strong id="xpCount">0</strong>
+          </div>
+          <div class="hearts" id="hearts" aria-label="Remaining hearts"></div>
+          <button class="secondary-action compact-action" id="logoutButton" type="button">Log out</button>
+        </header>
+
+        <section class="hero-panel" aria-label="Course progress">
+          <div class="hero-copy">
+            <p class="eyebrow" id="companyTag">Interview-style drills</p>
+            <h2 id="lessonTitle">Choose a lesson</h2>
+            <p id="lessonIntro">
+              Fast technical questions for signals, circuits, digital logic, and embedded systems.
+            </p>
+          </div>
+          <div class="chip-board" aria-hidden="true">
+            <div class="chip-core">
+              <span></span><span></span><span></span><span></span>
+              <strong>EE</strong>
+            </div>
+          </div>
+        </section>
+
+        <section class="question-panel" aria-live="polite">
+          <div class="question-meta">
+            <span id="questionType">Multiple choice</span>
+            <span id="questionCounter">1 of 1</span>
+          </div>
+          <div class="progress-track" aria-hidden="true"><span id="progressBar"></span></div>
+
+          <div class="prompt-row">
+            <div>
+              <p class="eyebrow" id="topicLabel">Topic</p>
+              <h3 id="promptText">Loading question...</h3>
+            </div>
+            <button class="icon-button" id="hintButton" type="button" title="Show hint" aria-label="Show hint">?</button>
+          </div>
+
+          <div id="visualArea" class="visual-area"></div>
+          <div id="answerArea" class="answer-area"></div>
+
+          <div class="feedback" id="feedback" hidden>
+            <strong id="feedbackTitle"></strong>
+            <p id="feedbackText"></p>
+          </div>
+
+          <footer class="actions">
+            <button class="secondary-action" id="skipButton" type="button">Skip</button>
+            <button class="primary-action" id="checkButton" type="button">Check</button>
+          </footer>
+        </section>
+      </main>
+
+      <aside class="coach-panel" aria-label="Study coach">
+        <section class="coach-card">
+          <p class="eyebrow">Skill map</p>
+          <div id="skillMap" class="skill-map"></div>
+        </section>
+        <section class="coach-card">
+          <p class="eyebrow">Notebook</p>
+          <ul id="notebook"></ul>
+        </section>
+      </aside>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>
