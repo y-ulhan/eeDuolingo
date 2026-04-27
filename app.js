@@ -242,6 +242,8 @@ const defaultProgress = {
   notes: []
 };
 
+const debugNoLogin = true;
+
 const state = {
   lessonIndex: 0,
   questionIndex: 0,
@@ -598,6 +600,11 @@ function saveGoogleSettings() {
 }
 
 function restoreSession() {
+  if (debugNoLogin && isLocalDebugHost()) {
+    showApp(getDebugAccount());
+    return;
+  }
+
   const key = localStorage.getItem("circuitSession");
   const account = getAccounts()[key];
   if (account) {
@@ -605,6 +612,25 @@ function restoreSession() {
     return;
   }
   showAuth();
+}
+
+function isLocalDebugHost() {
+  return ["localhost", "127.0.0.1", "::1"].includes(window.location.hostname);
+}
+
+function getDebugAccount() {
+  const accounts = getAccounts();
+  const key = "debug:localhost";
+  const account = accounts[key] || {
+    key,
+    email: "debug@localhost",
+    name: "Debug Mode",
+    provider: "debug",
+    progress: { ...defaultProgress }
+  };
+  accounts[key] = account;
+  setAccounts(accounts);
+  return account;
 }
 
 function render() {

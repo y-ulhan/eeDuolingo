@@ -26,6 +26,10 @@ You can also open `index.html` directly in a browser.
 
 Note: accounts are demo-only and stored in browser `localStorage`; do not use real passwords.
 
+## Debug branch
+
+This branch is the no-login localhost debug variant. When opened on `localhost`, `127.0.0.1`, or `::1`, it skips the auth screen and loads the main practice app using a local `Debug Mode` profile.
+
 ## Google sign-in
 
 Create an OAuth web client in Google Cloud, add `http://localhost:8787` as an authorized JavaScript origin, then paste the client ID into **Google Workspace setup** on the login screen.
