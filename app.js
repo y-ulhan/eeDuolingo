@@ -1,231 +1,231 @@
 const lessons = [
   {
-    id: "ee2",
-    title: "EE 2: Physics for EEs",
-    company: "UCLA lower-division core",
-    topic: "Fields, waves, and devices",
+    id: "signals",
+    title: "Signals Sprint",
+    company: "Apple + Meta style",
+    topic: "DSP and sampling",
     color: "#00a86b",
     questions: [
       {
         type: "choice",
-        prompt: "EE 2 warmup: a uniform electric field of 200 V/m points in +x. How much potential change occurs moving 3 cm in +x?",
-        hint: "Use delta V = -E dot delta x. Convert centimeters to meters.",
-        options: ["-6 V", "-0.06 V", "+0.06 V", "+6 V"],
-        answer: "-6 V",
-        explain: "Moving 0.03 m along the field gives delta V = -200 * 0.03 = -6 V."
+        prompt: "A sensor output is band-limited to 18 kHz. What minimum ADC sample rate avoids aliasing in an ideal system?",
+        hint: "Nyquist says the sampling rate must be at least twice the highest frequency component.",
+        options: ["18 kS/s", "24 kS/s", "36 kS/s", "72 kS/s"],
+        answer: "36 kS/s",
+        explain: "The Nyquist limit is 2 x 18 kHz, so an ideal anti-aliasing setup needs at least 36 kS/s."
       },
       {
         type: "fill",
-        prompt: "A photon has wavelength 500 nm. Estimate its energy in eV.",
-        hint: "Use E(eV) = 1240 / wavelength(nm).",
-        answer: "2.48",
-        tolerance: 0.15,
-        suffix: "eV",
-        explain: "1240 / 500 nm is 2.48 eV, a useful physics-for-EEs conversion."
+        prompt: "An RC low-pass has R = 10 kOhm and C = 1 nF. Estimate the cutoff frequency in kHz.",
+        hint: "Use fc = 1 / (2*pi*R*C). The answer is near 16.",
+        answer: "15.9",
+        tolerance: 1.1,
+        suffix: "kHz",
+        explain: "fc = 1 / (2*pi*10,000*1e-9), which is about 15.9 kHz."
+      },
+      {
+        type: "scope",
+        prompt: "Which trace shows a signal after an ideal low-pass filter removes high-frequency ripple?",
+        hint: "A low-pass keeps the slow trend and attenuates the fast wiggles.",
+        options: ["A", "B", "C"],
+        answer: "B",
+        explain: "Trace B preserves the slow sine-like shape while removing the dense ripple."
       },
       {
         type: "choice",
-        prompt: "For a plane electromagnetic wave in free space, which fields are perpendicular to the direction of travel?",
-        hint: "A propagating free-space wave is transverse.",
-        options: ["Only E", "Only B", "Both E and B", "Neither field"],
-        answer: "Both E and B",
-        explain: "In a transverse electromagnetic wave, E and B are both perpendicular to propagation and to each other."
+        prompt: "A 12-bit ADC measures 0 to 3.3 V. What is the closest voltage size of one LSB?",
+        hint: "Divide the full-scale range by 2^12.",
+        options: ["0.08 mV", "0.81 mV", "8.1 mV", "81 mV"],
+        answer: "0.81 mV",
+        explain: "3.3 V / 4096 is about 0.000805 V, or 0.81 mV per count."
+      },
+      {
+        type: "fill",
+        prompt: "A sine wave has period 250 microseconds. What is its frequency in kHz?",
+        hint: "Frequency is 1 / period. 250 microseconds is 0.00025 seconds.",
+        answer: "4",
+        tolerance: 0.2,
+        suffix: "kHz",
+        explain: "1 / 0.00025 s = 4000 Hz, which is 4 kHz."
       },
       {
         type: "order",
-        prompt: "Order a quick semiconductor intuition path for an illuminated photodiode.",
-        hint: "Light creates carriers before the external circuit can measure current.",
-        answer: ["Photon absorption", "Electron-hole pair generation", "Carrier separation by junction field", "Photocurrent in external circuit"],
-        explain: "Photodiode current starts with absorption, then carrier generation, field-driven separation, and current flow."
-      },
-      {
-        type: "fill",
-        prompt: "A capacitor stores 2.0 microcoulombs at 5 V. What is its capacitance in microfarads?",
-        hint: "Use Q = C V.",
-        answer: "0.4",
-        tolerance: 0.05,
-        suffix: "uF",
-        explain: "C = Q / V = 2.0 uC / 5 V = 0.4 uF."
-      },
-      {
-        type: "choice",
-        prompt: "Which physical effect most directly explains current flow in a metal wire under an applied electric field?",
-        hint: "Think of mobile charge carriers responding to a field.",
-        options: ["Electron drift", "Nuclear fusion", "Photon emission", "Magnetic hysteresis"],
-        answer: "Electron drift",
-        explain: "The field causes conduction electrons to drift, producing macroscopic current."
+        prompt: "Order a clean signal-chain debug flow for a noisy ADC reading.",
+        hint: "Start at the analog input, then move through reference, sampling, and firmware math.",
+        answer: ["Probe sensor output", "Check ADC reference", "Verify sampling rate", "Inspect digital filtering"],
+        explain: "A noisy reading can be analog, reference-related, timing-related, or introduced by processing."
       }
     ]
   },
   {
-    id: "ee3",
-    title: "EE 3: Intro to EE",
-    company: "UCLA sophomore foundation",
-    topic: "Circuits and EE systems",
+    id: "circuits",
+    title: "Circuit Climb",
+    company: "Google + Amazon style",
+    topic: "Analog fundamentals",
     color: "#2266cc",
     questions: [
       {
         type: "choice",
-        prompt: "EE 3 intro: which invention is most directly tied to automatic computation and control?",
-        hint: "Think of the digital switching element behind modern computers.",
-        options: ["Transistor", "Steam turbine", "Transformer oil", "Mercury thermometer"],
-        answer: "Transistor",
-        explain: "Transistors enabled compact switching and amplification, making automatic computation practical."
+        prompt: "A 5 V source drives a 1 kOhm resistor in series with a 4 kOhm resistor. What voltage appears across the 4 kOhm resistor?",
+        hint: "A voltage divider gives Vout = Vin * Rbottom / (Rtop + Rbottom).",
+        options: ["1 V", "2.5 V", "4 V", "5 V"],
+        answer: "4 V",
+        explain: "The 4 kOhm resistor gets 5 V * 4 / 5, so the drop is 4 V."
       },
       {
         type: "order",
-        prompt: "Order the EE 3 design flow for a simple light-sensing alarm.",
-        hint: "Define behavior before wiring and measuring.",
-        answer: ["Define threshold behavior", "Choose sensor and divider", "Build comparator circuit", "Test alarm output"],
-        explain: "A clean design flow starts with requirements, then sensing, circuitry, and verification."
+        prompt: "Put these op-amp debugging checks in the best first-pass order.",
+        hint: "Start with power and obvious limits before chasing small-signal behavior.",
+        answer: ["Check supply rails", "Confirm input common-mode range", "Inspect feedback path", "Measure output swing"],
+        explain: "Rail issues and input range violations can make feedback measurements misleading."
       },
       {
         type: "fill",
-        prompt: "A 9 V battery drives a 3 kOhm resistor. What current flows in mA?",
-        hint: "Use Ohm's law I = V / R.",
-        answer: "3",
-        tolerance: 0.2,
-        suffix: "mA",
-        explain: "9 V / 3000 ohms = 0.003 A, or 3 mA."
+        prompt: "A 2 mA current through a 2.2 kOhm resistor dissipates how many mW?",
+        hint: "Use P = I^2 R. Convert milliamps to amps first.",
+        answer: "8.8",
+        tolerance: 0.6,
+        suffix: "mW",
+        explain: "P = (0.002 A)^2 * 2200 Ohm = 0.0088 W, or 8.8 mW."
       },
       {
         type: "choice",
-        prompt: "A lab DMM in voltage mode should usually be connected how?",
-        hint: "Voltage is measured across an element.",
-        options: ["In parallel", "In series", "As an open switch", "Only to ground"],
-        answer: "In parallel",
-        explain: "A voltmeter measures potential difference across two nodes, so it is placed in parallel."
+        prompt: "An inverting op-amp has Rin = 10 kOhm and Rf = 47 kOhm. What is the small-signal gain?",
+        hint: "For an inverting amplifier, gain is -Rf / Rin.",
+        options: ["-0.21", "-4.7", "+4.7", "+47"],
+        answer: "-4.7",
+        explain: "The gain is -47 kOhm / 10 kOhm, so the output is inverted with gain 4.7."
       },
       {
         type: "fill",
-        prompt: "A 5 V supply delivers 40 mA to a small module. How much power is this in mW?",
+        prompt: "A 3.3 V rail supplies 120 mA to a load. How much power does the load consume in mW?",
         hint: "Use P = V I, with current in amps.",
-        answer: "200",
+        answer: "396",
         tolerance: 8,
         suffix: "mW",
-        explain: "5 V * 0.040 A = 0.20 W, or 200 mW."
+        explain: "3.3 V * 0.12 A = 0.396 W, which is 396 mW."
       },
       {
         type: "choice",
-        prompt: "Which system is a classic EE 3 example of telecommunication?",
-        hint: "It moves information over electromagnetic links.",
-        options: ["Wireless phone link", "Hydraulic jack", "Ball bearing", "Heat sink fin"],
-        answer: "Wireless phone link",
-        explain: "Telecommunication systems encode and transmit information through electrical or electromagnetic signals."
+        prompt: "A bypass capacitor should usually be placed closest to which pins?",
+        hint: "The loop area should be small where current demand changes quickly.",
+        options: ["Power and ground pins", "Reset and boot pins", "UART TX and RX", "Crystal pins"],
+        answer: "Power and ground pins",
+        explain: "Local decoupling works best when the capacitor sits close to the IC power and ground pins."
       }
     ]
   },
   {
-    id: "ee10",
-    title: "EE 10: Circuit Theory I",
-    company: "UCLA circuits core",
-    topic: "Resistive circuits and transients",
+    id: "digital",
+    title: "Logic League",
+    company: "NVIDIA + Microsoft style",
+    topic: "Digital design",
     color: "#7c3aed",
     questions: [
       {
         type: "choice",
-        prompt: "EE 10 node-voltage setup: what law is usually written at each unknown node?",
-        hint: "Currents entering and leaving a node must balance.",
-        options: ["KCL", "Snell's law", "Faraday rotation", "Nyquist theorem"],
-        answer: "KCL",
-        explain: "Nodal analysis applies Kirchhoff's Current Law at each unknown node."
+        prompt: "A flip-flop has 80 ps clock-to-Q, 40 ps setup time, and the combinational path delay is 620 ps. What is the fastest ideal clock period?",
+        hint: "Add clock-to-Q, logic delay, and setup time.",
+        options: ["620 ps", "660 ps", "740 ps", "820 ps"],
+        answer: "740 ps",
+        explain: "The minimum period is 80 + 620 + 40 = 740 ps before adding skew or margin."
       },
       {
         type: "order",
-        prompt: "Order the steps to find a Thevenin equivalent seen by a load.",
-        hint: "Find open-circuit voltage, then equivalent resistance with independent sources deactivated.",
-        answer: ["Remove the load", "Find open-circuit voltage", "Deactivate independent sources", "Find equivalent resistance"],
-        explain: "Thevenin form is Vth in series with Rth as seen from the load terminals."
+        prompt: "Order the path of a simple SoC interrupt from pin event to software handler.",
+        hint: "Hardware detects the edge before the CPU jumps into the handler.",
+        answer: ["GPIO edge detect", "Interrupt controller", "CPU vector lookup", "ISR executes"],
+        explain: "The pin event is latched by GPIO logic, routed by the interrupt controller, then handled by CPU firmware."
       },
       {
         type: "choice",
-        prompt: "A 10 V source feeds 2 kOhm and 3 kOhm in series. What is the current?",
-        hint: "Series resistances add.",
-        options: ["1 mA", "2 mA", "3.3 mA", "5 mA"],
-        answer: "2 mA",
-        explain: "The total resistance is 5 kOhm, so I = 10 V / 5 kOhm = 2 mA."
+        prompt: "Which design reduces metastability risk when a one-bit async signal enters a new clock domain?",
+        hint: "The common first tool is a small chain of flip-flops clocked by the destination domain.",
+        options: ["Combinational decoder", "Two-flop synchronizer", "Tri-state bus", "Ripple counter"],
+        answer: "Two-flop synchronizer",
+        explain: "A two-flop synchronizer gives the first flop time to settle before the signal is consumed."
       },
       {
         type: "fill",
-        prompt: "A 1 kOhm resistor carries 5 mA. What voltage is across it?",
-        hint: "Use V = I R.",
-        answer: "5",
+        prompt: "A clock runs at 250 MHz. What is its period in ns?",
+        hint: "Period is 1 / frequency. 250 MHz is 250 million cycles per second.",
+        answer: "4",
         tolerance: 0.2,
-        suffix: "V",
-        explain: "0.005 A * 1000 ohms = 5 V."
+        suffix: "ns",
+        explain: "1 / 250 MHz = 4 ns."
       },
       {
         type: "choice",
-        prompt: "For an RC circuit with R = 2 kOhm and C = 10 uF, what is the time constant?",
-        hint: "tau = R C.",
-        options: ["0.2 ms", "2 ms", "20 ms", "200 ms"],
-        answer: "20 ms",
-        explain: "2000 ohms * 10 microfarads = 0.02 s, or 20 ms."
+        prompt: "Which Verilog assignment type is preferred for sequential logic inside a clocked always block?",
+        hint: "Sequential logic should update registers together at the clock edge.",
+        options: ["Blocking =", "Nonblocking <=", "Continuous assign", "Tri-state assign"],
+        answer: "Nonblocking <=",
+        explain: "Nonblocking assignments model clocked register updates without accidental ordering dependencies."
       },
       {
         type: "order",
-        prompt: "Order a clean EE 10 circuit-solving workflow.",
-        hint: "Model first, then write equations, solve, and sanity-check units.",
-        answer: ["Label nodes and reference", "Write KCL or KVL equations", "Solve unknowns", "Check power and units"],
-        explain: "Good circuit analysis is mostly disciplined setup, then algebra and physical checks."
+        prompt: "Order the steps for closing timing on a failing setup path.",
+        hint: "Find the path first, then reduce delay or add timing budget.",
+        answer: ["Identify worst path", "Inspect logic depth", "Pipeline or optimize logic", "Rerun static timing"],
+        explain: "Timing closure starts from the reported path, then shortens combinational delay or changes the architecture."
       }
     ]
   },
   {
-    id: "ee102",
-    title: "EE 102: Systems and Signals",
-    company: "UCLA signals core",
-    topic: "LTI systems, convolution, transforms",
+    id: "embedded",
+    title: "Firmware Flight",
+    company: "Tesla + SpaceX style",
+    topic: "Embedded systems",
     color: "#d97706",
     questions: [
       {
         type: "choice",
-        prompt: "EE 102: which operation gives the output of an LTI system from input x(t) and impulse response h(t)?",
-        hint: "LTI systems are characterized by impulse response.",
-        options: ["Convolution", "Modulo addition", "Matrix transpose", "Quantization only"],
-        answer: "Convolution",
-        explain: "For an LTI system, y(t) = x(t) * h(t), the convolution of input with impulse response."
+        prompt: "An SPI sensor returns corrupt bytes only when the cable is long. Which fix is most directly relevant?",
+        hint: "Long wires make edge rate, ringing, and signal integrity matter.",
+        options: ["Increase heap size", "Lower SPI clock rate", "Use a larger enum", "Enable compiler warnings"],
+        answer: "Lower SPI clock rate",
+        explain: "Slowing the bus gives edges more time to settle and reduces signal-integrity pressure."
       },
       {
         type: "fill",
-        prompt: "A sinusoid has angular frequency 100*pi rad/s. What is its frequency in Hz?",
-        hint: "f = omega / (2*pi).",
-        answer: "50",
-        tolerance: 1,
-        suffix: "Hz",
-        explain: "100*pi / (2*pi) = 50 Hz."
+        prompt: "A 48 MHz MCU timer uses a prescaler of 48. How many timer ticks occur per millisecond?",
+        hint: "48 MHz / 48 = 1 MHz, then convert one millisecond.",
+        answer: "1000",
+        tolerance: 0,
+        suffix: "ticks",
+        explain: "The timer runs at 1 MHz, so 1 ms contains 1000 ticks."
       },
       {
         type: "order",
-        prompt: "Order the steps to analyze a stable LTI filter from a block diagram.",
-        hint: "Get the model, then frequency behavior, then time-domain implication.",
-        answer: ["Find impulse response", "Take Fourier or Laplace transform", "Identify magnitude response", "Predict output behavior"],
-        explain: "Systems and signals connects time-domain impulse response with transform-domain filtering behavior."
+        prompt: "Arrange the fastest path to isolate an intermittent I2C lockup.",
+        hint: "Observe the bus before changing code, then test recovery.",
+        answer: ["Capture SDA/SCL", "Check pull-up values", "Find stuck-low device", "Add bus recovery pulses"],
+        explain: "A logic capture shows whether the problem is electrical, a stuck peripheral, or missing recovery behavior."
       },
       {
         type: "choice",
-        prompt: "Which signal is periodic?",
-        hint: "Periodic means x(t + T) = x(t) for some positive T.",
-        options: ["cos(20*pi*t)", "e^(-t)u(t)", "single rectangular pulse", "random thermal noise sample"],
-        answer: "cos(20*pi*t)",
-        explain: "A cosine repeats with period T = 2*pi / omega, so cos(20*pi*t) is periodic."
+        prompt: "A watchdog timer is most useful for handling which failure mode?",
+        hint: "Think about firmware that stops making forward progress.",
+        options: ["Stack overflow detection only", "CPU stuck in a dead loop", "ADC quantization noise", "Lowering RF emissions"],
+        answer: "CPU stuck in a dead loop",
+        explain: "A watchdog resets the system if firmware stops periodically proving it is alive."
       },
       {
         type: "fill",
-        prompt: "A first-order low-pass has cutoff frequency 200 Hz. Estimate its time constant in ms.",
-        hint: "tau = 1 / (2*pi*fc).",
-        answer: "0.8",
-        tolerance: 0.15,
-        suffix: "ms",
-        explain: "1 / (2*pi*200) is about 0.000796 s, or 0.8 ms."
+        prompt: "A UART runs at 115200 baud with 10 bits per byte on the wire. Roughly how many bytes per second can it carry?",
+        hint: "Divide baud by bits per byte.",
+        answer: "11520",
+        tolerance: 250,
+        suffix: "B/s",
+        explain: "115200 bits per second / 10 bits per byte is about 11,520 bytes per second."
       },
       {
-        type: "scope",
-        prompt: "Which trace best represents a low-pass filtered version of a signal with high-frequency ripple?",
-        hint: "The filtered trace should keep the slow trend and suppress fast oscillations.",
-        options: ["A", "B", "C"],
-        answer: "B",
-        explain: "Trace B is the smoothed version, matching the low-pass intuition taught in systems and signals."
+        type: "choice",
+        prompt: "Which symptom best suggests stack growth is colliding with heap or global data?",
+        hint: "Memory corruption often appears unrelated to the code that caused it.",
+        options: ["Only faster boot time", "Random crashes after deeper call chains", "Perfectly repeatable ADC offset", "Lower current draw"],
+        answer: "Random crashes after deeper call chains",
+        explain: "Deep calls and interrupts can grow the stack until it corrupts nearby memory, causing strange crashes."
       }
     ]
   }
@@ -666,7 +666,7 @@ function render() {
   state.order = question.type === "order" ? shuffle([...question.answer]) : [];
 
   lessonTitle.textContent = lesson.title;
-  lessonIntro.textContent = `${lesson.topic} drills mapped to UCLA's EE course sequence.`;
+  lessonIntro.textContent = `${lesson.topic} drills that feel quick, scored, and interview practical.`;
   companyTag.textContent = lesson.company;
   topicLabel.textContent = lesson.topic;
   promptText.textContent = question.prompt;
