@@ -1,14 +1,21 @@
 # CircuitSprout
 
-CircuitSprout is a Duolingo-style study app for electrical engineering majors preparing for technical interviews at big tech companies.
+CircuitSprout is a Duolingo-style study app for electrical engineering majors, now organized around UCLA Electrical and Computer Engineering course themes.
 
 It includes:
 
-- lesson paths for DSP, analog circuits, digital design, and embedded systems
+- lesson paths for UCLA-flavored EE 2, EE 3, EE 10, and EE 102 practice
 - multiple-choice, typed numeric, sequencing, and oscilloscope-style questions
 - XP, hearts, streaks, daily goals, progress meters, and a review notebook
 - local login/create-account flow with separate progress per account
 - optional Sign in with Google using Google Identity Services and a Workspace domain filter
+
+The first UCLA course set covers:
+
+- EE 2: Physics for Electrical Engineers
+- EE 3: Introduction to Electrical Engineering
+- EE 10: Circuit Theory I
+- EE 102: Systems and Signals
 
 Run it with the included static server:
 
