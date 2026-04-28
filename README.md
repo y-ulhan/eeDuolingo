@@ -9,7 +9,7 @@ It includes:
 - XP, hearts, streaks, daily goals, progress meters, and a review notebook
 - local login/create-account flow with separate progress per account
 - optional Sign in with Google using Google Identity Services and a Workspace domain filter
-- local PDF/image upload lab that can generate practice questions from homework and test scans
+- PDF/image upload lab that can generate practice questions from homework and test scans, using an optional OpenAI backend with local fallback
 
 The first UCLA course set covers:
 
@@ -48,6 +48,25 @@ This demo decodes the Google ID token in the browser to choose a local progress 
 
 ## Upload-generated practice
 
-Students can upload PDFs or images from tests, homework, and notes in the **Upload lab** panel. PDF text extraction uses PDF.js in the browser. If a PDF page has no text layer, the app renders that page and runs OCR with Tesseract.js when the browser can load it. Image uploads also use Tesseract.js OCR. Files are processed locally in the browser and are not uploaded to the included Node server.
+Students can upload PDFs or images from tests, homework, and notes in the **Upload lab** panel. PDF text extraction uses PDF.js in the browser. If a PDF page has no text layer, the app renders that page and runs OCR with Tesseract.js when the browser can load it. Image uploads also use Tesseract.js OCR.
 
 The generated lesson is saved per local account/debug profile as **Uploaded Tests/HW**.
+
+### AI question backend
+
+Set `OPENAI_API_KEY` before starting the server to enable smarter question generation:
+
+```powershell
+$env:OPENAI_API_KEY="sk-..."
+node server.js
+```
+
+Optional:
+
+```powershell
+$env:OPENAI_MODEL="gpt-4o-mini"
+```
+
+When the API key is configured, extracted text is sent to the local Node endpoint `/api/generate-questions`, which calls OpenAI's Responses API and returns structured questions. If the key is missing or the AI request fails, the browser uses the local heuristic generator instead.
+
+Privacy note: enabling the AI backend sends extracted homework/test text to OpenAI for question generation. Without `OPENAI_API_KEY`, files and extracted text stay in the browser/local app flow.

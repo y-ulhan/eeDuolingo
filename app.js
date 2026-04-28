@@ -1073,8 +1073,9 @@ async function handleGenerateFromUpload() {
   try {
     const uploaded = await extractUploadedText([...sourceFiles.files]);
     const combinedText = `${uploaded.text}\n\n${sourceText.value}`.trim();
-    uploadStatus.textContent = `Extracted ${combinedText.length} characters. Generating questions...`;
-    const questions = generateQuestionsFromText(combinedText);
+    uploadStatus.textContent = `Extracted ${combinedText.length} characters. Asking AI backend...`;
+    const aiResult = await generateQuestionsWithAi(combinedText);
+    const questions = aiResult.questions.length ? aiResult.questions : generateQuestionsFromText(combinedText);
 
     if (!questions.length) {
       uploadStatus.textContent = "No readable course text found. Try a clearer scan, image upload, or paste the problem text.";
@@ -1087,11 +1088,57 @@ async function handleGenerateFromUpload() {
     state.questionIndex = 0;
     saveProgress();
     render();
+    uploadStatus.textContent = aiResult.questions.length
+      ? `${questions.length} AI-generated questions saved from ${uploaded.names.length || "pasted"} source${uploaded.names.length === 1 ? "" : "s"}.`
+      : `${questions.length} local fallback questions saved. Add OPENAI_API_KEY on the server for smarter generation.`;
   } catch (error) {
     uploadStatus.textContent = `Could not process upload: ${error.message}`;
   } finally {
     generateUploadQuestions.disabled = false;
   }
+}
+
+async function generateQuestionsWithAi(text) {
+  if (text.trim().length < 20) {
+    return { questions: [], source: "none" };
+  }
+
+  try {
+    const response = await fetch("/api/generate-questions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        text,
+        course: currentLesson()?.title || "UCLA ECE"
+      })
+    });
+
+    if (!response.ok) return { questions: [], source: "fallback" };
+    const payload = await response.json();
+    return {
+      source: payload.source || "ai",
+      questions: normalizeAiQuestions(payload.questions || [])
+    };
+  } catch (error) {
+    return { questions: [], source: "fallback" };
+  }
+}
+
+function normalizeAiQuestions(questions) {
+  return questions
+    .filter((question) => question.prompt && question.answer && ["choice", "fill"].includes(question.type))
+    .map((question) => ({
+      type: question.type,
+      prompt: question.prompt,
+      hint: question.hint || "Use the uploaded source material.",
+      options: question.type === "choice" ? question.options.slice(0, 4) : [],
+      answer: question.answer,
+      suffix: question.suffix || "",
+      tolerance: Number(question.tolerance || 0),
+      explain: question.explain || "This answer follows from the uploaded material."
+    }))
+    .filter((question) => question.type === "fill" || question.options.length === 4)
+    .slice(0, 8);
 }
 
 function generateQuestionsFromText(rawText) {
