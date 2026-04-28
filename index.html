@@ -109,6 +109,11 @@
             <span id="userInitial">E</span>
             <strong id="userName">Engineer</strong>
           </div>
+          <nav class="view-tabs" aria-label="Primary pages">
+            <button class="view-tab" data-view="concept" type="button">Concepts</button>
+            <button class="view-tab" data-view="problem" type="button">Problems</button>
+            <button class="view-tab" data-view="progress" type="button">Progress</button>
+          </nav>
           <div class="stat-pill" title="Learning streak">
             <span>Streak</span>
             <strong id="streakCount">0</strong>
@@ -121,6 +126,9 @@
           <button class="secondary-action compact-action" id="logoutButton" type="button">Log out</button>
         </header>
 
+        <section class="page-view concept-page" id="conceptPage" aria-label="Concepts"></section>
+
+        <section class="page-view problem-page" id="problemPage" aria-label="Practice problems">
         <section class="hero-panel" aria-label="Course progress">
           <div class="hero-copy">
             <p class="eyebrow" id="companyTag">Interview-style drills</p>
@@ -165,6 +173,9 @@
             <button class="primary-action" id="checkButton" type="button">Check</button>
           </footer>
         </section>
+        </section>
+
+        <section class="page-view progress-page" id="progressPage" aria-label="Account progress"></section>
       </main>
 
       <aside class="coach-panel" aria-label="Study coach">
