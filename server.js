@@ -58,10 +58,11 @@ function serveStatic(requestUrl, response) {
 }
 
 async function handleGenerateQuestions(request, response) {
-  if (!process.env.OPENAI_API_KEY) {
+  const provider = getAiProvider();
+  if (!provider) {
     sendJson(response, 503, {
       error: "missing_api_key",
-      message: "OPENAI_API_KEY is not configured. Falling back to local generation."
+      message: "No AI provider key is configured. Falling back to local generation."
     });
     return;
   }
@@ -75,8 +76,25 @@ async function handleGenerateQuestions(request, response) {
     return;
   }
 
-  const payload = await callOpenAIQuestionGenerator(sourceText, course);
+  const payload = await callQuestionGenerator(provider, sourceText, course);
   sendJson(response, 200, payload);
+}
+
+function getAiProvider() {
+  const requested = String(process.env.AI_PROVIDER || "").toLowerCase();
+  if (requested === "openrouter") return process.env.OPENROUTER_API_KEY ? "openrouter" : null;
+  if (requested === "gemini") return process.env.GEMINI_API_KEY ? "gemini" : null;
+  if (requested === "openai") return process.env.OPENAI_API_KEY ? "openai" : null;
+  if (process.env.OPENROUTER_API_KEY) return "openrouter";
+  if (process.env.GEMINI_API_KEY) return "gemini";
+  if (process.env.OPENAI_API_KEY) return "openai";
+  return null;
+}
+
+async function callQuestionGenerator(provider, sourceText, course) {
+  if (provider === "openrouter") return callOpenRouterQuestionGenerator(sourceText, course);
+  if (provider === "gemini") return callGeminiQuestionGenerator(sourceText, course);
+  return callOpenAIQuestionGenerator(sourceText, course);
 }
 
 async function callOpenAIQuestionGenerator(sourceText, course) {
@@ -114,38 +132,7 @@ async function callOpenAIQuestionGenerator(sourceText, course) {
           type: "json_schema",
           name: "question_set",
           strict: true,
-          schema: {
-            type: "object",
-            additionalProperties: false,
-            properties: {
-              questions: {
-                type: "array",
-                minItems: 4,
-                maxItems: 8,
-                items: {
-                  type: "object",
-                  additionalProperties: false,
-                  properties: {
-                    type: { type: "string", enum: ["choice", "fill"] },
-                    prompt: { type: "string" },
-                    hint: { type: "string" },
-                    options: {
-                      type: "array",
-                      items: { type: "string" },
-                      minItems: 0,
-                      maxItems: 4
-                    },
-                    answer: { type: "string" },
-                    suffix: { type: "string" },
-                    tolerance: { type: "number" },
-                    explain: { type: "string" }
-                  },
-                  required: ["type", "prompt", "hint", "options", "answer", "suffix", "tolerance", "explain"]
-                }
-              }
-            },
-            required: ["questions"]
-          }
+          schema: questionSchema()
         }
       }
     })
@@ -158,21 +145,143 @@ async function callOpenAIQuestionGenerator(sourceText, course) {
 
   const parsed = parseOpenAIJson(data);
   return {
-    source: "ai",
+    source: "openai",
     model,
     questions: normalizeGeneratedQuestions(parsed.questions || [])
   };
+}
+
+async function callOpenRouterQuestionGenerator(sourceText, course) {
+  const model = process.env.OPENROUTER_MODEL || "google/gemini-2.0-flash-exp:free";
+  const apiResponse = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+      "Content-Type": "application/json",
+      "HTTP-Referer": process.env.APP_URL || `http://localhost:${port}`,
+      "X-Title": "CircuitSprout"
+    },
+    body: JSON.stringify({
+      model,
+      messages: [
+        { role: "system", content: questionSystemPrompt() },
+        { role: "user", content: questionUserPrompt(sourceText, course) }
+      ],
+      response_format: {
+        type: "json_schema",
+        json_schema: {
+          name: "question_set",
+          strict: true,
+          schema: questionSchema()
+        }
+      }
+    })
+  });
+
+  const data = await apiResponse.json().catch(() => ({}));
+  if (!apiResponse.ok) {
+    throw new Error(data.error?.message || `OpenRouter request failed with ${apiResponse.status}`);
+  }
+
+  const parsed = parseJsonText(data.choices?.[0]?.message?.content);
+  return {
+    source: "openrouter",
+    model,
+    questions: normalizeGeneratedQuestions(parsed.questions || [])
+  };
+}
+
+async function callGeminiQuestionGenerator(sourceText, course) {
+  const model = process.env.GEMINI_MODEL || "gemini-1.5-flash";
+  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(process.env.GEMINI_API_KEY)}`;
+  const apiResponse = await fetch(endpoint, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      contents: [
+        {
+          role: "user",
+          parts: [{ text: `${questionSystemPrompt()}\n\n${questionUserPrompt(sourceText, course)}` }]
+        }
+      ],
+      generationConfig: {
+        responseMimeType: "application/json",
+        responseSchema: questionSchema()
+      }
+    })
+  });
+
+  const data = await apiResponse.json().catch(() => ({}));
+  if (!apiResponse.ok) {
+    throw new Error(data.error?.message || `Gemini request failed with ${apiResponse.status}`);
+  }
+
+  const text = data.candidates?.[0]?.content?.parts?.map((part) => part.text || "").join("");
+  const parsed = parseJsonText(text);
+  return {
+    source: "gemini",
+    model,
+    questions: normalizeGeneratedQuestions(parsed.questions || [])
+  };
+}
+
+function questionSystemPrompt() {
+  return "You create concise electrical engineering practice questions for a Duolingo-style app. Use only the provided source text. Do not mention copyrighted source names unless present in the text. Prefer UCLA ECE course language when relevant.";
+}
+
+function questionUserPrompt(sourceText, course) {
+  return `Course context: ${course}\n\nSource text:\n${sourceText}\n\nCreate 5 to 8 practice questions. Use only types \"choice\" and \"fill\". For choice, provide exactly four options and make answer exactly match one option. For fill, use a short numeric or technical-term answer and set options to an empty array. Include helpful hints and explanations. Return only JSON matching the schema.`;
 }
 
 function parseOpenAIJson(data) {
   const text = data.output_text || data.output?.flatMap((item) => item.content || [])
     .find((content) => content.type === "output_text")?.text;
 
+  return parseJsonText(text);
+}
+
+function parseJsonText(text) {
   if (!text) {
-    throw new Error("OpenAI response did not include generated text.");
+    throw new Error("AI response did not include generated JSON.");
   }
 
-  return JSON.parse(text);
+  const cleaned = String(text).trim().replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/```$/i, "").trim();
+  return JSON.parse(cleaned);
+}
+
+function questionSchema() {
+  return {
+    type: "object",
+    additionalProperties: false,
+    properties: {
+      questions: {
+        type: "array",
+        minItems: 4,
+        maxItems: 8,
+        items: {
+          type: "object",
+          additionalProperties: false,
+          properties: {
+            type: { type: "string", enum: ["choice", "fill"] },
+            prompt: { type: "string" },
+            hint: { type: "string" },
+            options: {
+              type: "array",
+              items: { type: "string" },
+              minItems: 0,
+              maxItems: 4
+            },
+            answer: { type: "string" },
+            suffix: { type: "string" },
+            tolerance: { type: "number" },
+            explain: { type: "string" }
+          },
+          required: ["type", "prompt", "hint", "options", "answer", "suffix", "tolerance", "explain"]
+        }
+      }
+    },
+    required: ["questions"]
+  };
 }
 
 function normalizeGeneratedQuestions(questions) {

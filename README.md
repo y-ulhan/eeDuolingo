@@ -54,19 +54,37 @@ The generated lesson is saved per local account/debug profile as **Uploaded Test
 
 ### AI question backend
 
-Set `OPENAI_API_KEY` before starting the server to enable smarter question generation:
+Set one provider key before starting the server to enable smarter question generation. The app supports OpenAI, OpenRouter, and Gemini.
+
+OpenRouter:
 
 ```powershell
-$env:OPENAI_API_KEY="sk-..."
+$env:AI_PROVIDER="openrouter"
+$env:OPENROUTER_API_KEY="..."
+$env:OPENROUTER_MODEL="google/gemini-2.0-flash-exp:free"
 node server.js
 ```
 
-Optional:
+Gemini:
 
 ```powershell
-$env:OPENAI_MODEL="gpt-4o-mini"
+$env:AI_PROVIDER="gemini"
+$env:GEMINI_API_KEY="..."
+$env:GEMINI_MODEL="gemini-1.5-flash"
+node server.js
 ```
 
-When the API key is configured, extracted text is sent to the local Node endpoint `/api/generate-questions`, which calls OpenAI's Responses API and returns structured questions. If the key is missing or the AI request fails, the browser uses the local heuristic generator instead.
+OpenAI:
 
-Privacy note: enabling the AI backend sends extracted homework/test text to OpenAI for question generation. Without `OPENAI_API_KEY`, files and extracted text stay in the browser/local app flow.
+```powershell
+$env:AI_PROVIDER="openai"
+$env:OPENAI_API_KEY="sk-..."
+$env:OPENAI_MODEL="gpt-4o-mini"
+node server.js
+```
+
+If `AI_PROVIDER` is not set, the server auto-detects keys in this order: OpenRouter, Gemini, then OpenAI.
+
+When a provider key is configured, extracted text is sent to the local Node endpoint `/api/generate-questions`, which calls the selected AI provider and returns structured questions. If the key is missing or the AI request fails, the browser uses the local heuristic generator instead.
+
+Privacy note: enabling the AI backend sends extracted homework/test text to the selected provider for question generation. Without a provider API key, files and extracted text stay in the browser/local app flow.
