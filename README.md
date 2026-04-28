@@ -4,7 +4,7 @@ CircuitSprout is a Duolingo-style study app for electrical engineering majors pr
 
 It includes:
 
-- lesson paths for DSP, analog circuits, digital design, and embedded systems
+- lesson paths for DSP, analog circuits, digital design, embedded systems, AC power, electronics devices, and instrumentation
 - multiple-choice, typed numeric, sequencing, and oscilloscope-style questions
 - XP, hearts, streaks, daily goals, progress meters, and a review notebook
 - local login/create-account flow with separate progress per account
@@ -17,6 +17,11 @@ The built-in question bank covers:
 - circuit analysis, op-amps, and power
 - digital timing, synchronizers, and HDL basics
 - embedded buses, timers, watchdogs, and debug workflows
+- AC resonance, power factor, three-phase relationships, rectifiers, sensors, transducers, and ADC instrumentation
+
+The built-in bank currently ships with 7 concepts and 40 questions per concept, for 280 total questions before any uploaded practice sets.
+
+Several built-in questions are source-seeded from public course and question-bank material, including the DSCE Basic Electrical, Electronics and Instrumentation Engineering PDF, MIT OpenCourseWare Signals and Systems notes, UMBC digital/embedded lecture notes, WPI timing-analysis notes, and University of Oklahoma embedded systems lecture PDFs.
 
 Run it with the included static server:
 
