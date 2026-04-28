@@ -48,6 +48,6 @@ This demo decodes the Google ID token in the browser to choose a local progress 
 
 ## Upload-generated practice
 
-Students can upload PDFs or images from tests, homework, and notes in the **Upload lab** panel. PDF text extraction uses PDF.js in the browser. Image OCR uses Tesseract.js when the browser can load it. Files are processed locally in the browser and are not uploaded to the included Node server.
+Students can upload PDFs or images from tests, homework, and notes in the **Upload lab** panel. PDF text extraction uses PDF.js in the browser. If a PDF page has no text layer, the app renders that page and runs OCR with Tesseract.js when the browser can load it. Image uploads also use Tesseract.js OCR. Files are processed locally in the browser and are not uploaded to the included Node server.
 
 The generated lesson is saved per local account/debug profile as **Uploaded Tests/HW**.

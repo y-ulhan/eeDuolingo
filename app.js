@@ -1014,10 +1014,39 @@ async function extractPdfText(file) {
   for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
     const page = await pdf.getPage(pageNumber);
     const content = await page.getTextContent();
-    pages.push(content.items.map((item) => item.str).join(" "));
+    const textLayer = content.items.map((item) => item.str).join(" ").trim();
+    if (textLayer.length > 30) {
+      pages.push(textLayer);
+      continue;
+    }
+
+    if (window.Tesseract) {
+      uploadStatus.textContent = `OCR scanned PDF page ${pageNumber} of ${pdf.numPages}...`;
+      pages.push(await ocrPdfPage(page, pageNumber));
+    }
   }
 
   return pages.join("\n");
+}
+
+async function ocrPdfPage(page, pageNumber) {
+  const viewport = page.getViewport({ scale: 1.6 });
+  const canvas = document.createElement("canvas");
+  const context = canvas.getContext("2d");
+  canvas.width = viewport.width;
+  canvas.height = viewport.height;
+
+  await page.render({ canvasContext: context, viewport }).promise;
+  const result = await window.Tesseract.recognize(canvas, "eng", {
+    logger: (event) => {
+      if (event.status) {
+        const percent = event.progress ? ` ${Math.round(event.progress * 100)}%` : "";
+        uploadStatus.textContent = `OCR PDF page ${pageNumber}: ${event.status}${percent}`;
+      }
+    }
+  });
+
+  return result.data.text || "";
 }
 
 async function extractImageText(file) {
@@ -1044,10 +1073,11 @@ async function handleGenerateFromUpload() {
   try {
     const uploaded = await extractUploadedText([...sourceFiles.files]);
     const combinedText = `${uploaded.text}\n\n${sourceText.value}`.trim();
+    uploadStatus.textContent = `Extracted ${combinedText.length} characters. Generating questions...`;
     const questions = generateQuestionsFromText(combinedText);
 
     if (!questions.length) {
-      uploadStatus.textContent = "Could not find enough readable text. Paste problem text and try again.";
+      uploadStatus.textContent = "No readable course text found. Try a clearer scan, image upload, or paste the problem text.";
       return;
     }
 
@@ -1070,14 +1100,14 @@ function generateQuestionsFromText(rawText) {
     .replace(/[^\x20-\x7E]/g, " ")
     .trim();
 
-  if (clean.length < 40) return [];
+  if (clean.length < 12) return [];
 
   const sentences = clean
-    .split(/(?<=[.!?])\s+/)
+    .split(/(?<=[.!?])\s+|\n+|(?:\s{2,})/)
     .map((sentence) => sentence.trim())
-    .filter((sentence) => sentence.length >= 35 && sentence.length <= 220);
+    .filter((sentence) => sentence.length >= 12 && sentence.length <= 260);
   const candidates = sentences.length ? sentences : chunkText(clean);
-  const questions = [];
+  const questions = [...formulaQuestions(clean)];
 
   for (const sentence of candidates) {
     if (questions.length >= 8) break;
@@ -1087,6 +1117,10 @@ function generateQuestionsFromText(rawText) {
 
   if (questions.length < 4) {
     questions.push(...fallbackConceptQuestions(clean).slice(0, 4 - questions.length));
+  }
+
+  if (questions.length < 4) {
+    questions.push(...genericQuestions(clean).slice(0, 4 - questions.length));
   }
 
   return questions.slice(0, 8);
@@ -1101,7 +1135,7 @@ function chunkText(text) {
 }
 
 function questionFromSentence(sentence, index) {
-  const numeric = sentence.match(/(?:\d+(?:\.\d+)?\s?(?:k?ohm|ohm|v|ma|a|uf|nf|hz|khz|mhz|s|ms|ns|w|mw)\b)/i);
+  const numeric = sentence.match(/(?:\d+(?:\.\d+)?\s?(?:k?ohm|ohm|v|ma|a|uf|nf|pf|hz|khz|mhz|rad\/s|s|ms|us|ns|w|mw|db|ev)\b)/i);
   if (numeric) {
     return {
       type: "fill",
@@ -1195,7 +1229,107 @@ function fallbackConceptQuestions(text) {
     });
   }
 
+  if (lower.includes("kcl") || lower.includes("node") || lower.includes("nodal")) {
+    questions.push({
+      type: "choice",
+      prompt: "Based on the uploaded circuit material, which law is used to write equations at circuit nodes?",
+      hint: "At a node, currents must sum consistently.",
+      options: ["KCL", "KVL", "Snell's law", "Bayes rule"],
+      answer: "KCL",
+      explain: "Kirchhoff's Current Law is the standard node-equation tool."
+    });
+  }
+
+  if (lower.includes("fourier") || lower.includes("frequency")) {
+    questions.push({
+      type: "choice",
+      prompt: "Based on the uploaded signals material, which transform moves a signal into frequency-domain form?",
+      hint: "It decomposes signals into sinusoidal components.",
+      options: ["Fourier transform", "Boolean minimization", "Mesh transform", "Carrier drift"],
+      answer: "Fourier transform",
+      explain: "The Fourier transform represents signal content versus frequency."
+    });
+  }
+
   return questions;
+}
+
+function formulaQuestions(text) {
+  const lower = text.toLowerCase();
+  const questions = [];
+
+  if (/(v\s*=\s*i\s*r|ohm'?s law)/i.test(text)) {
+    questions.push({
+      type: "fill",
+      prompt: "Uploaded-material drill: if I = 2 mA and R = 5 kOhm, what voltage does Ohm's law predict?",
+      hint: "Use V = I R.",
+      answer: "10",
+      tolerance: 0.1,
+      suffix: "V",
+      explain: "2 mA times 5 kOhm equals 10 V."
+    });
+  }
+
+  if (/(tau|time constant|rc)/i.test(text)) {
+    questions.push({
+      type: "choice",
+      prompt: "Uploaded-material drill: what expression gives the time constant of a first-order RC circuit?",
+      hint: "Multiply the resistance and capacitance.",
+      options: ["tau = RC", "tau = R/C", "tau = C/R", "tau = 1/RC"],
+      answer: "tau = RC",
+      explain: "The first-order RC time constant is tau = R C."
+    });
+  }
+
+  if (lower.includes("sampling") || lower.includes("nyquist")) {
+    questions.push({
+      type: "choice",
+      prompt: "Uploaded-material drill: what sampling rate is required to avoid aliasing for a signal band-limited to B Hz?",
+      hint: "Use the Nyquist criterion.",
+      options: ["At least 2B", "At least B/2", "Exactly B", "Any nonzero rate"],
+      answer: "At least 2B",
+      explain: "Nyquist sampling requires a sampling rate at least twice the highest frequency."
+    });
+  }
+
+  return questions;
+}
+
+function genericQuestions(text) {
+  const keywords = [...new Set((text.match(/[A-Za-z][A-Za-z0-9-]{3,}/g) || [])
+    .map((word) => word.replace(/[.,;:()]/g, ""))
+    .filter(Boolean)
+    .sort((a, b) => scoreKeyword(b) - scoreKeyword(a)))]
+    .slice(0, 4);
+
+  if (!keywords.length) return [];
+
+  const lead = text.slice(0, 220);
+  return [
+    {
+      type: "choice",
+      prompt: `From the uploaded material, which term is most central to this excerpt? "${lead}"`,
+      hint: "Choose the strongest technical term.",
+      options: shuffle([keywords[0], ...distractorsFor(keywords[0])]).slice(0, 4),
+      answer: keywords[0],
+      explain: `"${keywords[0]}" appears to be the strongest technical anchor in the uploaded excerpt.`
+    },
+    {
+      type: "order",
+      prompt: "Use the uploaded material as a study workflow. What should you do first when converting it into practice?",
+      hint: "Start by identifying what the problem gives you.",
+      answer: ["Identify givens", "Choose governing equation", "Solve for unknown", "Check units"],
+      explain: "Most EE homework problems become manageable when givens, equations, unknowns, and units are separated."
+    },
+    {
+      type: "choice",
+      prompt: "What is the best next study action for a difficult uploaded homework problem?",
+      hint: "Do not start by memorizing the final answer.",
+      options: ["List givens and unknowns", "Ignore units", "Skip diagrams", "Memorize without solving"],
+      answer: "List givens and unknowns",
+      explain: "Listing givens and unknowns turns vague problem text into an analyzable model."
+    }
+  ];
 }
 
 function clearGeneratedQuestions() {
