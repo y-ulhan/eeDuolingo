@@ -9,6 +9,7 @@ It includes:
 - XP, hearts, streaks, daily goals, progress meters, and a review notebook
 - local login/create-account flow with separate progress per account
 - optional Sign in with Google using Google Identity Services and a Workspace domain filter
+- local PDF/image upload lab that can generate practice questions from homework and test scans
 
 The first UCLA course set covers:
 
@@ -44,3 +45,9 @@ Create an OAuth web client in Google Cloud, add `http://localhost:8787` as an au
 The Workspace domain field is optional. If set, CircuitSprout only accepts Google ID tokens whose hosted domain or email domain matches that value.
 
 This demo decodes the Google ID token in the browser to choose a local progress profile. A production app should verify the ID token on a server before creating a session.
+
+## Upload-generated practice
+
+Students can upload PDFs or images from tests, homework, and notes in the **Upload lab** panel. PDF text extraction uses PDF.js in the browser. Image OCR uses Tesseract.js when the browser can load it. Files are processed locally in the browser and are not uploaded to the included Node server.
+
+The generated lesson is saved per local account/debug profile as **Uploaded Tests/HW**.

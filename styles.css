@@ -927,6 +927,63 @@ h3 {
   padding-left: 18px;
 }
 
+.upload-card {
+  gap: 12px;
+}
+
+.upload-card h3 {
+  font-size: 1.05rem;
+  line-height: 1.2;
+}
+
+.file-drop {
+  display: grid;
+  gap: 6px;
+  padding: 14px;
+  border: 2px dashed rgba(0, 168, 107, 0.32);
+  border-radius: 8px;
+  background: rgba(0, 168, 107, 0.06);
+  color: var(--ink);
+  font-weight: 950;
+}
+
+.file-drop input {
+  width: 100%;
+  color: var(--muted);
+}
+
+.file-drop small,
+.upload-status {
+  color: var(--muted);
+  font-size: 0.84rem;
+  font-weight: 800;
+  line-height: 1.4;
+}
+
+.upload-card textarea {
+  min-height: 118px;
+  width: 100%;
+  resize: vertical;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--ink);
+  background: #fff;
+  font: inherit;
+  outline: none;
+}
+
+.upload-card textarea:focus {
+  border-color: var(--green);
+  box-shadow: 0 0 0 4px rgba(0, 168, 107, 0.12);
+}
+
+.upload-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
 @media (max-width: 1180px) {
   .app-shell {
     grid-template-columns: 270px minmax(0, 1fr);
