@@ -9,6 +9,7 @@ It includes:
 - XP, hearts, streaks, daily goals, progress meters, and a review notebook
 - local login/create-account flow with separate progress per account
 - optional Sign in with Google using Google Identity Services and a Workspace domain filter
+- PDF/image upload lab that can generate practice questions from homework and test scans, using an optional OpenAI backend with local fallback
 
 The first UCLA course set covers:
 
@@ -44,3 +45,46 @@ Create an OAuth web client in Google Cloud, add `http://localhost:8787` as an au
 The Workspace domain field is optional. If set, CircuitSprout only accepts Google ID tokens whose hosted domain or email domain matches that value.
 
 This demo decodes the Google ID token in the browser to choose a local progress profile. A production app should verify the ID token on a server before creating a session.
+
+## Upload-generated practice
+
+Students can upload PDFs or images from tests, homework, and notes in the **Upload lab** panel. PDF text extraction uses PDF.js in the browser. If a PDF page has no text layer, the app renders that page and runs OCR with Tesseract.js when the browser can load it. Image uploads also use Tesseract.js OCR.
+
+The generated lesson is saved per local account/debug profile as **Uploaded Tests/HW**.
+
+### AI question backend
+
+Set one provider key before starting the server to enable smarter question generation. The app supports OpenAI, OpenRouter, and Gemini.
+
+OpenRouter:
+
+```powershell
+$env:AI_PROVIDER="openrouter"
+$env:OPENROUTER_API_KEY="..."
+$env:OPENROUTER_MODEL="google/gemini-2.0-flash-exp:free"
+node server.js
+```
+
+Gemini:
+
+```powershell
+$env:AI_PROVIDER="gemini"
+$env:GEMINI_API_KEY="..."
+$env:GEMINI_MODEL="gemini-1.5-flash"
+node server.js
+```
+
+OpenAI:
+
+```powershell
+$env:AI_PROVIDER="openai"
+$env:OPENAI_API_KEY="sk-..."
+$env:OPENAI_MODEL="gpt-4o-mini"
+node server.js
+```
+
+If `AI_PROVIDER` is not set, the server auto-detects keys in this order: OpenRouter, Gemini, then OpenAI.
+
+When a provider key is configured, extracted text is sent to the local Node endpoint `/api/generate-questions`, which calls the selected AI provider and returns structured questions. If the key is missing or the AI request fails, the browser uses the local heuristic generator instead.
+
+Privacy note: enabling the AI backend sends extracted homework/test text to the selected provider for question generation. Without a provider API key, files and extracted text stay in the browser/local app flow.

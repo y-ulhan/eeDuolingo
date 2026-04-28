@@ -239,7 +239,9 @@ const defaultProgress = {
   hearts: 5,
   solvedToday: 0,
   completed: {},
-  notes: []
+  notes: [],
+  uploadedQuestions: [],
+  uploadSources: []
 };
 
 const debugNoLogin = true;
@@ -301,13 +303,33 @@ const notebook = document.querySelector("#notebook");
 const userInitial = document.querySelector("#userInitial");
 const userName = document.querySelector("#userName");
 const logoutButton = document.querySelector("#logoutButton");
+const sourceFiles = document.querySelector("#sourceFiles");
+const sourceText = document.querySelector("#sourceText");
+const generateUploadQuestions = document.querySelector("#generateUploadQuestions");
+const clearUploadQuestions = document.querySelector("#clearUploadQuestions");
+const uploadStatus = document.querySelector("#uploadStatus");
 
 function currentLesson() {
-  return lessons[state.lessonIndex];
+  return getLessons()[state.lessonIndex];
 }
 
 function currentQuestion() {
   return currentLesson().questions[state.questionIndex];
+}
+
+function getLessons() {
+  if (!state.uploadedQuestions.length) return lessons;
+  return [
+    ...lessons,
+    {
+      id: "uploads",
+      title: "Uploaded Tests/HW",
+      company: "Generated locally",
+      topic: "Student-uploaded practice",
+      color: "#0f766e",
+      questions: state.uploadedQuestions
+    }
+  ];
 }
 
 function getAccounts() {
@@ -371,7 +393,9 @@ function getProgressSnapshot() {
     hearts: state.hearts,
     solvedToday: state.solvedToday,
     completed: state.completed,
-    notes: state.notes.slice(-5)
+    notes: state.notes.slice(-5),
+    uploadedQuestions: state.uploadedQuestions,
+    uploadSources: state.uploadSources
   };
 }
 
@@ -384,7 +408,9 @@ function loadProgress(progress = {}) {
   state.solvedToday = Number(progress.solvedToday || 0);
   state.completed = progress.completed || {};
   state.notes = progress.notes || [];
-  if (!lessons[state.lessonIndex]) state.lessonIndex = 0;
+  state.uploadedQuestions = progress.uploadedQuestions || [];
+  state.uploadSources = progress.uploadSources || [];
+  if (!getLessons()[state.lessonIndex]) state.lessonIndex = 0;
   if (!currentLesson().questions[state.questionIndex]) state.questionIndex = 0;
 }
 
@@ -657,6 +683,7 @@ function render() {
   renderAnswer(question);
   renderSkillMap();
   renderNotebook();
+  renderUploadStatus();
 }
 
 function typeLabel(type) {
@@ -691,7 +718,7 @@ function renderStats() {
 
 function renderLessons() {
   lessonList.replaceChildren();
-  lessons.forEach((lesson, index) => {
+  getLessons().forEach((lesson, index) => {
     const button = document.createElement("button");
     button.type = "button";
     button.className = index === state.lessonIndex ? "lesson-button active" : "lesson-button";
@@ -852,9 +879,17 @@ function isCorrect(question) {
   }
 
   if (question.type === "fill") {
-    const value = Number(document.querySelector("#fillInput")?.value);
+    const rawValue = String(document.querySelector("#fillInput")?.value || "").trim();
+    const value = Number(rawValue);
     const expected = Number(question.answer);
-    return Number.isFinite(value) && Math.abs(value - expected) <= question.tolerance;
+    if (Number.isFinite(expected)) {
+      return Number.isFinite(value) && Math.abs(value - expected) <= question.tolerance;
+    }
+    const expectedScalar = Number.parseFloat(question.answer);
+    if (Number.isFinite(expectedScalar) && Number.isFinite(value)) {
+      return Math.abs(value - expectedScalar) <= (question.tolerance || 0.001);
+    }
+    return normalizeAnswer(rawValue) === normalizeAnswer(question.answer);
   }
 
   if (question.type === "order") {
@@ -862,6 +897,10 @@ function isCorrect(question) {
   }
 
   return false;
+}
+
+function normalizeAnswer(value) {
+  return String(value).toLowerCase().replace(/\s+/g, "");
 }
 
 function showFeedback(correct, question) {
@@ -883,7 +922,7 @@ function continueFlow() {
   if (!feedback.hidden && feedback.classList.contains("correct")) {
     if (isLastQuestion()) {
       state.questionIndex = 0;
-      state.lessonIndex = (state.lessonIndex + 1) % lessons.length;
+      state.lessonIndex = (state.lessonIndex + 1) % getLessons().length;
     } else {
       state.questionIndex += 1;
     }
@@ -915,7 +954,7 @@ function showHint() {
 
 function renderSkillMap() {
   skillMap.replaceChildren();
-  lessons.forEach((lesson) => {
+  getLessons().forEach((lesson) => {
     const percent = Math.round((completedCount(lesson.id) / lesson.questions.length) * 100);
     const row = document.createElement("div");
     row.className = "skill-row";
@@ -936,6 +975,435 @@ function renderNotebook() {
     item.textContent = typeof note === "string" ? note : `${note.topic}: ${note.text}`;
     notebook.append(item);
   });
+}
+
+async function extractUploadedText(files) {
+  const chunks = [];
+  const names = [];
+
+  if (window.pdfjsLib) {
+    window.pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js";
+  }
+
+  for (const file of files) {
+    names.push(file.name);
+    uploadStatus.textContent = `Reading ${file.name}...`;
+
+    if (file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf")) {
+      chunks.push(await extractPdfText(file));
+      continue;
+    }
+
+    if (file.type.startsWith("image/")) {
+      chunks.push(await extractImageText(file));
+    }
+  }
+
+  return { text: chunks.join("\n\n"), names };
+}
+
+async function extractPdfText(file) {
+  if (!window.pdfjsLib) {
+    return "";
+  }
+
+  const buffer = await file.arrayBuffer();
+  const pdf = await window.pdfjsLib.getDocument({ data: buffer }).promise;
+  const pages = [];
+
+  for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
+    const page = await pdf.getPage(pageNumber);
+    const content = await page.getTextContent();
+    const textLayer = content.items.map((item) => item.str).join(" ").trim();
+    if (textLayer.length > 30) {
+      pages.push(textLayer);
+      continue;
+    }
+
+    if (window.Tesseract) {
+      uploadStatus.textContent = `OCR scanned PDF page ${pageNumber} of ${pdf.numPages}...`;
+      pages.push(await ocrPdfPage(page, pageNumber));
+    }
+  }
+
+  return pages.join("\n");
+}
+
+async function ocrPdfPage(page, pageNumber) {
+  const viewport = page.getViewport({ scale: 1.6 });
+  const canvas = document.createElement("canvas");
+  const context = canvas.getContext("2d");
+  canvas.width = viewport.width;
+  canvas.height = viewport.height;
+
+  await page.render({ canvasContext: context, viewport }).promise;
+  const result = await window.Tesseract.recognize(canvas, "eng", {
+    logger: (event) => {
+      if (event.status) {
+        const percent = event.progress ? ` ${Math.round(event.progress * 100)}%` : "";
+        uploadStatus.textContent = `OCR PDF page ${pageNumber}: ${event.status}${percent}`;
+      }
+    }
+  });
+
+  return result.data.text || "";
+}
+
+async function extractImageText(file) {
+  if (!window.Tesseract) {
+    return "";
+  }
+
+  const result = await window.Tesseract.recognize(file, "eng", {
+    logger: (event) => {
+      if (event.status) {
+        const percent = event.progress ? ` ${Math.round(event.progress * 100)}%` : "";
+        uploadStatus.textContent = `OCR ${file.name}: ${event.status}${percent}`;
+      }
+    }
+  });
+
+  return result.data.text || "";
+}
+
+async function handleGenerateFromUpload() {
+  generateUploadQuestions.disabled = true;
+  uploadStatus.textContent = "Preparing sources...";
+
+  try {
+    const uploaded = await extractUploadedText([...sourceFiles.files]);
+    const combinedText = `${uploaded.text}\n\n${sourceText.value}`.trim();
+    uploadStatus.textContent = `Extracted ${combinedText.length} characters. Asking AI backend...`;
+    const aiResult = await generateQuestionsWithAi(combinedText);
+    const questions = aiResult.questions.length ? aiResult.questions : generateQuestionsFromText(combinedText);
+
+    if (!questions.length) {
+      uploadStatus.textContent = "No readable course text found. Try a clearer scan, image upload, or paste the problem text.";
+      return;
+    }
+
+    state.uploadedQuestions = questions;
+    state.uploadSources = uploaded.names;
+    state.lessonIndex = getLessons().length - 1;
+    state.questionIndex = 0;
+    saveProgress();
+    render();
+    uploadStatus.textContent = aiResult.questions.length
+      ? `${questions.length} AI-generated questions saved from ${uploaded.names.length || "pasted"} source${uploaded.names.length === 1 ? "" : "s"}.`
+      : `${questions.length} local fallback questions saved. Add OPENAI_API_KEY on the server for smarter generation.`;
+  } catch (error) {
+    uploadStatus.textContent = `Could not process upload: ${error.message}`;
+  } finally {
+    generateUploadQuestions.disabled = false;
+  }
+}
+
+async function generateQuestionsWithAi(text) {
+  if (text.trim().length < 20) {
+    return { questions: [], source: "none" };
+  }
+
+  try {
+    const response = await fetch("/api/generate-questions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        text,
+        course: currentLesson()?.title || "UCLA ECE"
+      })
+    });
+
+    if (!response.ok) return { questions: [], source: "fallback" };
+    const payload = await response.json();
+    return {
+      source: payload.source || "ai",
+      questions: normalizeAiQuestions(payload.questions || [])
+    };
+  } catch (error) {
+    return { questions: [], source: "fallback" };
+  }
+}
+
+function normalizeAiQuestions(questions) {
+  return questions
+    .filter((question) => question.prompt && question.answer && ["choice", "fill"].includes(question.type))
+    .map((question) => ({
+      type: question.type,
+      prompt: question.prompt,
+      hint: question.hint || "Use the uploaded source material.",
+      options: question.type === "choice" ? question.options.slice(0, 4) : [],
+      answer: question.answer,
+      suffix: question.suffix || "",
+      tolerance: Number(question.tolerance || 0),
+      explain: question.explain || "This answer follows from the uploaded material."
+    }))
+    .filter((question) => question.type === "fill" || question.options.length === 4)
+    .slice(0, 8);
+}
+
+function generateQuestionsFromText(rawText) {
+  const clean = rawText
+    .replace(/\s+/g, " ")
+    .replace(/[^\x20-\x7E]/g, " ")
+    .trim();
+
+  if (clean.length < 12) return [];
+
+  const sentences = clean
+    .split(/(?<=[.!?])\s+|\n+|(?:\s{2,})/)
+    .map((sentence) => sentence.trim())
+    .filter((sentence) => sentence.length >= 12 && sentence.length <= 260);
+  const candidates = sentences.length ? sentences : chunkText(clean);
+  const questions = [...formulaQuestions(clean)];
+
+  for (const sentence of candidates) {
+    if (questions.length >= 8) break;
+    const generated = questionFromSentence(sentence, questions.length);
+    if (generated) questions.push(generated);
+  }
+
+  if (questions.length < 4) {
+    questions.push(...fallbackConceptQuestions(clean).slice(0, 4 - questions.length));
+  }
+
+  if (questions.length < 4) {
+    questions.push(...genericQuestions(clean).slice(0, 4 - questions.length));
+  }
+
+  return questions.slice(0, 8);
+}
+
+function chunkText(text) {
+  const chunks = [];
+  for (let index = 0; index < text.length; index += 180) {
+    chunks.push(text.slice(index, index + 180));
+  }
+  return chunks;
+}
+
+function questionFromSentence(sentence, index) {
+  const numeric = sentence.match(/(?:\d+(?:\.\d+)?\s?(?:k?ohm|ohm|v|ma|a|uf|nf|pf|hz|khz|mhz|rad\/s|s|ms|us|ns|w|mw|db|ev)\b)/i);
+  if (numeric) {
+    return {
+      type: "fill",
+      prompt: `From the uploaded material: what value appears in this statement? "${sentence.replace(numeric[0], "_____")}"`,
+      hint: "Look for the missing numeric value and unit from the uploaded source text.",
+      answer: numeric[0].replace(/\s+/g, ""),
+      tolerance: 0,
+      suffix: "",
+      explain: `The uploaded statement included ${numeric[0]}.`
+    };
+  }
+
+  const keyword = bestKeyword(sentence);
+  if (!keyword) return null;
+
+  if (index % 3 === 1) {
+    return {
+      type: "choice",
+      prompt: `Which term best completes this uploaded course note? "${sentence.replace(new RegExp(keyword, "i"), "_____")}"`,
+      hint: "Use the surrounding words as context.",
+      options: shuffle([keyword, ...distractorsFor(keyword)]).slice(0, 4),
+      answer: keyword,
+      explain: `The source sentence used "${keyword}" in that context.`
+    };
+  }
+
+  return {
+    type: "choice",
+    prompt: `Which concept from the uploaded material is most associated with this statement? "${sentence}"`,
+    hint: "Pick the strongest technical noun or method named by the statement.",
+    options: shuffle([keyword, ...distractorsFor(keyword)]).slice(0, 4),
+    answer: keyword,
+    explain: `The key concept in the statement is "${keyword}".`
+  };
+}
+
+function bestKeyword(sentence) {
+  const stopWords = new Set(["the", "and", "for", "with", "from", "this", "that", "which", "when", "where", "into", "using", "about", "problem", "figure", "given", "find"]);
+  const words = sentence.match(/[A-Za-z][A-Za-z0-9-]{3,}/g) || [];
+  const technical = words
+    .map((word) => word.replace(/[.,;:()]/g, ""))
+    .filter((word) => !stopWords.has(word.toLowerCase()))
+    .sort((a, b) => scoreKeyword(b) - scoreKeyword(a));
+  return technical[0] || "";
+}
+
+function scoreKeyword(word) {
+  const lower = word.toLowerCase();
+  const boosts = ["voltage", "current", "circuit", "signal", "system", "frequency", "convolution", "thevenin", "norton", "capacitor", "inductor", "diode", "transistor", "laplace", "fourier", "impulse", "response"];
+  return word.length + (boosts.includes(lower) ? 20 : 0);
+}
+
+function distractorsFor(answer) {
+  const pool = ["voltage", "current", "resistance", "capacitance", "inductance", "frequency", "convolution", "impulse response", "Thevenin equivalent", "Fourier transform", "KCL", "KVL", "low-pass filter", "diode", "transistor"];
+  return pool.filter((item) => item.toLowerCase() !== answer.toLowerCase());
+}
+
+function fallbackConceptQuestions(text) {
+  const lower = text.toLowerCase();
+  const questions = [];
+
+  if (lower.includes("thevenin") || lower.includes("norton")) {
+    questions.push({
+      type: "order",
+      prompt: "Based on the uploaded circuit material, order a Thevenin-equivalent workflow.",
+      hint: "Find the terminal behavior before replacing the network.",
+      answer: ["Remove the load", "Find open-circuit voltage", "Find equivalent resistance", "Replace with Vth and Rth"],
+      explain: "A Thevenin equivalent preserves the terminal voltage-current behavior of the original network."
+    });
+  }
+
+  if (lower.includes("convolution") || lower.includes("impulse")) {
+    questions.push({
+      type: "choice",
+      prompt: "Based on the uploaded systems material, what combines an input with an impulse response for an LTI system?",
+      hint: "This is the central time-domain operation in systems and signals.",
+      options: ["Convolution", "Quantization", "Superposition only", "Binary encoding"],
+      answer: "Convolution",
+      explain: "For an LTI system, output is the convolution of input and impulse response."
+    });
+  }
+
+  if (lower.includes("capacitor") || lower.includes("rc")) {
+    questions.push({
+      type: "choice",
+      prompt: "Which parameter sets the natural time scale of a first-order RC circuit?",
+      hint: "It is the product of resistance and capacitance.",
+      options: ["RC time constant", "Nyquist rate", "Forward voltage", "Clock period"],
+      answer: "RC time constant",
+      explain: "The time constant tau = RC controls charging and discharging speed."
+    });
+  }
+
+  if (lower.includes("kcl") || lower.includes("node") || lower.includes("nodal")) {
+    questions.push({
+      type: "choice",
+      prompt: "Based on the uploaded circuit material, which law is used to write equations at circuit nodes?",
+      hint: "At a node, currents must sum consistently.",
+      options: ["KCL", "KVL", "Snell's law", "Bayes rule"],
+      answer: "KCL",
+      explain: "Kirchhoff's Current Law is the standard node-equation tool."
+    });
+  }
+
+  if (lower.includes("fourier") || lower.includes("frequency")) {
+    questions.push({
+      type: "choice",
+      prompt: "Based on the uploaded signals material, which transform moves a signal into frequency-domain form?",
+      hint: "It decomposes signals into sinusoidal components.",
+      options: ["Fourier transform", "Boolean minimization", "Mesh transform", "Carrier drift"],
+      answer: "Fourier transform",
+      explain: "The Fourier transform represents signal content versus frequency."
+    });
+  }
+
+  return questions;
+}
+
+function formulaQuestions(text) {
+  const lower = text.toLowerCase();
+  const questions = [];
+
+  if (/(v\s*=\s*i\s*r|ohm'?s law)/i.test(text)) {
+    questions.push({
+      type: "fill",
+      prompt: "Uploaded-material drill: if I = 2 mA and R = 5 kOhm, what voltage does Ohm's law predict?",
+      hint: "Use V = I R.",
+      answer: "10",
+      tolerance: 0.1,
+      suffix: "V",
+      explain: "2 mA times 5 kOhm equals 10 V."
+    });
+  }
+
+  if (/(tau|time constant|rc)/i.test(text)) {
+    questions.push({
+      type: "choice",
+      prompt: "Uploaded-material drill: what expression gives the time constant of a first-order RC circuit?",
+      hint: "Multiply the resistance and capacitance.",
+      options: ["tau = RC", "tau = R/C", "tau = C/R", "tau = 1/RC"],
+      answer: "tau = RC",
+      explain: "The first-order RC time constant is tau = R C."
+    });
+  }
+
+  if (lower.includes("sampling") || lower.includes("nyquist")) {
+    questions.push({
+      type: "choice",
+      prompt: "Uploaded-material drill: what sampling rate is required to avoid aliasing for a signal band-limited to B Hz?",
+      hint: "Use the Nyquist criterion.",
+      options: ["At least 2B", "At least B/2", "Exactly B", "Any nonzero rate"],
+      answer: "At least 2B",
+      explain: "Nyquist sampling requires a sampling rate at least twice the highest frequency."
+    });
+  }
+
+  return questions;
+}
+
+function genericQuestions(text) {
+  const keywords = [...new Set((text.match(/[A-Za-z][A-Za-z0-9-]{3,}/g) || [])
+    .map((word) => word.replace(/[.,;:()]/g, ""))
+    .filter(Boolean)
+    .sort((a, b) => scoreKeyword(b) - scoreKeyword(a)))]
+    .slice(0, 4);
+
+  if (!keywords.length) return [];
+
+  const lead = text.slice(0, 220);
+  return [
+    {
+      type: "choice",
+      prompt: `From the uploaded material, which term is most central to this excerpt? "${lead}"`,
+      hint: "Choose the strongest technical term.",
+      options: shuffle([keywords[0], ...distractorsFor(keywords[0])]).slice(0, 4),
+      answer: keywords[0],
+      explain: `"${keywords[0]}" appears to be the strongest technical anchor in the uploaded excerpt.`
+    },
+    {
+      type: "order",
+      prompt: "Use the uploaded material as a study workflow. What should you do first when converting it into practice?",
+      hint: "Start by identifying what the problem gives you.",
+      answer: ["Identify givens", "Choose governing equation", "Solve for unknown", "Check units"],
+      explain: "Most EE homework problems become manageable when givens, equations, unknowns, and units are separated."
+    },
+    {
+      type: "choice",
+      prompt: "What is the best next study action for a difficult uploaded homework problem?",
+      hint: "Do not start by memorizing the final answer.",
+      options: ["List givens and unknowns", "Ignore units", "Skip diagrams", "Memorize without solving"],
+      answer: "List givens and unknowns",
+      explain: "Listing givens and unknowns turns vague problem text into an analyzable model."
+    }
+  ];
+}
+
+function clearGeneratedQuestions() {
+  state.uploadedQuestions = [];
+  state.uploadSources = [];
+  state.completed = Object.fromEntries(
+    Object.entries(state.completed).filter(([key]) => !key.startsWith("uploads-"))
+  );
+  if (currentLesson()?.id === "uploads") {
+    state.lessonIndex = 0;
+    state.questionIndex = 0;
+  }
+  sourceFiles.value = "";
+  sourceText.value = "";
+  saveProgress();
+  render();
+}
+
+function renderUploadStatus() {
+  if (!uploadStatus) return;
+  if (!state.uploadedQuestions.length) {
+    uploadStatus.textContent = "No uploaded problem set yet.";
+    return;
+  }
+
+  const sourceCount = state.uploadSources.length;
+  uploadStatus.textContent = `${state.uploadedQuestions.length} generated questions from ${sourceCount || "pasted"} source${sourceCount === 1 ? "" : "s"}.`;
 }
 
 function addNote(topic, text) {
@@ -969,6 +1437,8 @@ checkButton.addEventListener("click", continueFlow);
 skipButton.addEventListener("click", skipQuestion);
 hintButton.addEventListener("click", showHint);
 saveGoogleConfig.addEventListener("click", saveGoogleSettings);
+generateUploadQuestions.addEventListener("click", handleGenerateFromUpload);
+clearUploadQuestions.addEventListener("click", clearGeneratedQuestions);
 window.handleGoogleCredential = handleGoogleCredential;
 window.addEventListener("load", renderGoogleSignIn);
 

@@ -6,6 +6,8 @@
     <title>CircuitSprout - EE Interview Practice</title>
     <link rel="stylesheet" href="styles.css" />
     <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js" defer></script>
   </head>
   <body>
     <main class="auth-shell" id="authShell">
@@ -173,6 +175,21 @@
         <section class="coach-card">
           <p class="eyebrow">Notebook</p>
           <ul id="notebook"></ul>
+        </section>
+        <section class="coach-card upload-card">
+          <p class="eyebrow">Upload lab</p>
+          <h3>Make practice from tests and HW</h3>
+          <label class="file-drop">
+            <input id="sourceFiles" type="file" accept=".pdf,image/*" multiple />
+            <span>Upload PDFs or images</span>
+            <small>Text is extracted locally in your browser.</small>
+          </label>
+          <textarea id="sourceText" placeholder="Or paste problem text here after scanning notes or homework."></textarea>
+          <div class="upload-actions">
+            <button class="primary-action compact-action" id="generateUploadQuestions" type="button">Generate</button>
+            <button class="secondary-action compact-action" id="clearUploadQuestions" type="button">Clear</button>
+          </div>
+          <p class="upload-status" id="uploadStatus">No uploaded problem set yet.</p>
         </section>
       </aside>
     </div>
